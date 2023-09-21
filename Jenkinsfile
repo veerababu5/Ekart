@@ -1,24 +1,23 @@
 pipeline {
     agent any
     tools{
-        jdk  'jdk11'
-        maven  'maven3'
+        jdk 'jdk17'
+        maven 'maven3'
     }
-    
     environment{
         SCANNER_HOME= tool 'sonar-scanner'
     }
-    
+
     stages {
-        stage('Git Checkout') {
+        stage('Git checkout') {
             steps {
-                git branch: 'main', changelog: false, credentialsId: '15fb69c3-3460-4d51-bd07-2b0545fa5151', poll: false, url: 'https://github.com/jaiswaladi246/Shopping-Cart.git'
+                git branch: 'main', changelog: false, credentialsId: 'git-cred', poll: false, url: 'https://github.com/veerababu5/Ekart.git'
             }
         }
         
         stage('COMPILE') {
             steps {
-                sh "mvn clean compile -DskipTests=true"
+                sh "mvn clean compile"
             }
         }
         
@@ -35,7 +34,7 @@ pipeline {
                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Shopping-Cart \
                    -Dsonar.java.binaries=. \
                    -Dsonar.projectKey=Shopping-Cart '''
-               }
+                }
             }
         }
         
@@ -48,11 +47,22 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script{
-                    withDockerRegistry(credentialsId: '2fe19d8a-3d12-4b82-ba20-9d22e6bf1672', toolName: 'docker') {
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
                         
                         sh "docker build -t shopping-cart -f docker/Dockerfile ."
-                        sh "docker tag  shopping-cart adijaiswal/shopping-cart:latest"
-                        sh "docker push adijaiswal/shopping-cart:latest"
+                        sh "docker tag  shopping-cart veeru3488/shopping-cart:latest"
+                        sh "docker push veeru3488/shopping-cart:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Docker Deploy') {
+            steps {
+                script{
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                        
+                        sh "docker run -d --name ekart -p 8070:8070 veeru3488/shopping-cart:latest"
                     }
                 }
             }
